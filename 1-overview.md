@@ -22,5 +22,3 @@ impractical on site and increase operational risk. This mobile solution removes 
 data entry, accelerating procurement decisions at the point of receipt. By transforming, the 
 application reduces delays and supports accurate, data-driven financial commitments regardless of 
 location.
-
-
