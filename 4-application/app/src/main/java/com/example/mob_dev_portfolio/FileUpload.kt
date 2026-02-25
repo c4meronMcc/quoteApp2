@@ -28,6 +28,7 @@ fun FilePicker(onFileSelected: (Uri) -> Unit) {
         if (uri != null ) {
             selectedFileName = getFileNameFromUri(context, uri)
             onFileSelected(uri)
+            convertPdfToJson(context, uri)
         }
     }
     Column(
