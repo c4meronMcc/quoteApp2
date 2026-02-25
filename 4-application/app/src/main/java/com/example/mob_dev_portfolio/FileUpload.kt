@@ -23,13 +23,14 @@ fun FilePicker(onFileSelected: (Uri) -> Unit) {
     var selectedFileName by remember { mutableStateOf("No File Selected Yet") }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        if (uri != null ) {
-            selectedFileName = getFileNameFromUri(context, uri)
-            onFileSelected(uri)
-            convertPdfToJson(context, uri)
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uri: List<Uri>? ->
+        for (file in uri!!) {
+            selectedFileName = getFileNameFromUri(context, file)
+            onFileSelected(file)
+            convertPdfToJson(context, file)
         }
+
     }
     Column(
         modifier = Modifier
