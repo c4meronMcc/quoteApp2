@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
 }
 
 android {
@@ -9,7 +10,8 @@ android {
 
     defaultConfig {
         applicationId "com.example.mob_dev_portfolio"
-        minSdk = 29
+        minSdk = 24
+        //noinspection OldTargetApi
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -32,15 +34,36 @@ android {
     }
 
     buildFeatures {
-        buildConfig = true
+        // Enable viewBinding to easily access views from your XML layout
+        viewBinding = true
+        compose true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion '1.5.1'
     }
 }
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.16.0'
-    implementation 'androidx.appcompat:appcompat:1.7.1'
-    implementation 'com.google.android.material:material:1.13.0'
+    // Core Android Libraries for XML Views
+    implementation 'androidx.core:core-ktx:1.13.1'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+
+    // UI Libraries for XML Views
+    implementation 'com.google.android.material:material:1.12.0' // Provides Button, EditText, etc. with Material Design [10, 11]
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4' // ADDED: Needed for ConstraintLayout [3, 6]
+
+    // Activity and Lifecycle Libraries (if not using Compose exclusively)
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.1'
+    implementation 'androidx.activity:activity-ktx:1.9.0'// Use the ktx version for extension functions
+
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+    implementation 'androidx.compose.runtime:runtime-android:1.10.3'
+    implementation("androidx.activity:activity-compose:1.8.2")
+    implementation("androidx.compose.ui:ui:1.6.3")
+    implementation("androidx.compose.material3:material3:1.2.1")
+
+    // Testing
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
