@@ -3,22 +3,17 @@
 
 Student ID: `24067465`
 
-This application is a decision-support tool for field-based project managers, such as construction 
-site leads, who are evaluating supplier quotes while away from office infrastructure. In 
-high-pressure environments, quotes often arrive as fragmented physical documents or inconsistent 
-digital attachments. The app enables immediate data capture via the device camera or the Android
-Storage Access Framework. By leveraging the Gemini API, the system extracts key variables such as 
-unit costs, tax, and delivery lead times from varied documents layouts and converts them into a 
-structured dataset from immediate comparison.
+This application is a mobile decision-support tool for off-site project managers evaluating material supplier quotes.
+My motivation stems from observing severe inefficiencies in my mum's screen printing business, where manually transcribing 
+varied, unstructured tenders into Excel takes hours. A mobile solution is essential because these professionals operate 
+away from desks but must make rapid financial commitments; choosing the wrong supplier risks crippling profit margins or 
+halting production entirely.
 
-The core functionality is a mobile-optimised comparison dashboard that automatically evaluates 
-quotes against one another. Designed for constrained screen space, it highlights the optimal 
-procurement option based on user-defined priorities, such as lowest total cost or fastest 
-fulfilment.
+Users import digital PDF quotes directly from their device. Crucially for field environments with poor connectivity, the 
+text extraction and parsing pipeline operates entirely offline. It processes the data to populate a mobile-optimised 
+dashboard, enabling clean, side-by-side comparisons of critical variables like unit costs and lead times in one centralised 
+view.
 
-The project addresses the financial impact of decision latency and manual transcription errors in 
-procurement workflows. Comparing complex tenders typically requires desktop spreadsheets which are
-impractical on site and increase operational risk. This mobile solution removes the need for manual 
-data entry, accelerating procurement decisions at the point of receipt. By transforming, the 
-application reduces delays and supports accurate, data-driven financial commitments regardless of 
-location.
+Users then define their priorities, such as 'lowest cost'. This prompts an integrated recommendation engine, powered by the 
+Gemini API, to analyse the dataset and highlight the optimal choice. Finally, the app generates a formatted summary PDF of 
+the comparison, explicitly featuring the AI's recommendation, ready to be shared with colleagues for immediate sign-off.
