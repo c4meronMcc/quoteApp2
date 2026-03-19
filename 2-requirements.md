@@ -48,3 +48,23 @@ _Complete the information above and then enumerate your functional and non-funct
 **Privacy & Security**
 
 - NFR5: The system must transmit only the extracted, necessary data points to the external API, strictly retaining the original PDF files on the local device.
+
+
+<!--
+Comments
+
+- All functional and non functional requirements are good with appropriate categories.
+- Functional requirements such as data ingestion and processing highlights that you will extract the textual data online, how you will do that?
+- For user inteface and interaction how you will get the AI recommended quote, what you will use to get it?
+- Overall, the app functionality is effective for supporting the business cause.
+- What mobile app development topics you will use in the app such as recycler view, room database etc,
+- Try to use a diverse range of concepts to get good marks.
+- For non functional requirements how will you ensure consistency in the app
+
+
+
+
+
+
+
+-->
