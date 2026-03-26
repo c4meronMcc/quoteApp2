@@ -41,7 +41,7 @@ object QuoteExtractor {
         return json
     }
 
-    fun findDate(entities: List<EntityAnnotation>): String {
+    private fun findDate(entities: List<EntityAnnotation>): String {
 
         return entities.firstOrNull { annotation ->
             annotation.entities.any { it.type == Entity.TYPE_DATE_TIME }
@@ -50,7 +50,7 @@ object QuoteExtractor {
             ?: "not found"
     }
 
-    fun findTotal(entities: List<EntityAnnotation>, rawText: String): String {
+    private fun findTotal(entities: List<EntityAnnotation>, rawText: String): String {
 
         val moneyEntities = entities.filter { annotation ->
             annotation.entities.any { it.type == Entity.TYPE_MONEY }
@@ -69,7 +69,7 @@ object QuoteExtractor {
             ?: "not found"
     }
 
-    fun findReference(rawText: String): String {
+    private fun findReference(rawText: String): String {
         val pattern = Regex("""[A-Z]{1,6}-?\d{4,8}""")
         return pattern.find(rawText)?.value ?: "Not Found"
     }
