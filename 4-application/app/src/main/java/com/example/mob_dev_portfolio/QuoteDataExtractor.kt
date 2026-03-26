@@ -73,8 +73,5 @@ object QuoteExtractor {
         val pattern = Regex("""[A-Z]{1,6}-?\d{4,8}""")
         return pattern.find(rawText)?.value ?: "Not Found"
     }
-
-
-
 }
 
