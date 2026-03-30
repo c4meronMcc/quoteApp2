@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mob_dev_portfolio.QuoteExtractor.extractQuoteDataAsJson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -44,7 +45,7 @@ fun FilePicker(onFileSelected: (Uri) -> Unit) {
             for (file in uris ?: return@launch) {
                 selectedFileName = getFileNameFromUri(context, file)
                 onFileSelected(file)
-                quoteArray.put(extractQuoteDataAsJson(context, file))
+                quoteArray.put(extractQuoteDataAsJson(convertPdfToTxt(context, file)))
             }
 
             println("MASTER JSON ARRAY:\n${quoteArray.toString(4)}")

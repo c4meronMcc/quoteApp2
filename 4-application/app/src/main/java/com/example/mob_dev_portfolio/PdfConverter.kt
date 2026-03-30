@@ -3,6 +3,8 @@ package com.example.mob_dev_portfolio
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
+import android.content.Intent
+import androidx.core.content.FileProvider
 
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
@@ -11,9 +13,9 @@ import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
 import com.tom_roush.pdfbox.pdmodel.font.PDType1Font
 import com.tom_roush.pdfbox.text.PDFTextStripper
 import org.json.JSONArray
-import org.json.JSONObject
 import java.io.File
 import java.io.InputStream
+
 
 fun  convertPdfToTxt(context: Context, uri: Uri): String {
 
@@ -40,38 +42,7 @@ fun  convertPdfToTxt(context: Context, uri: Uri): String {
     return "fail"
 }
 
-fun extractQuoteDataAsJson(context: Context, uri: Uri): JSONObject {
 
-    val pdfExtraction = convertPdfToTxt(context, uri)
-
-    val lines = pdfExtraction.lines().map {it.trim()}
-
-    var quoteNumber = "Not Found"
-    var date = "Not Found"
-    var totalAmount = "Not Found"
-
-    val quoteIndex = lines.indexOf("Quote Reference")
-    if (quoteIndex != -1 && quoteIndex + 1 < lines.size) {
-        quoteNumber = lines[quoteIndex + 1]
-    }
-
-    val dateIndex = lines.indexOf("Quote Date")
-    if (dateIndex != -1 && dateIndex + 1 < lines.size) {
-        date = lines[dateIndex + 1]
-    }
-
-    val totalLine = lines.find { it.startsWith("Total Amount", ignoreCase = true )}
-    if (totalLine != null) {
-        totalAmount = totalLine.removePrefix("Total Amount").trim()
-    }
-
-    val json = JSONObject()
-    json.put("quoteNumber", quoteNumber)
-    json.put("date", date)
-    json.put("totalAmount", totalAmount)
-
-    return json
-}
 
 fun generatePdfFromQuoteArray(context: Context, quoteArray: JSONArray) {
     PDFBoxResourceLoader.init(context)
@@ -144,4 +115,16 @@ fun generatePdfFromQuoteArray(context: Context, quoteArray: JSONArray) {
     document.close()
 
     println("PDF saved to: ${file.absolutePath}")
+
+    val uri = FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.provider",
+        file
+    )
+
+    val intent = Intent(Intent.ACTION_VIEW).apply {
+        setDataAndType(uri, "application/pdf")
+        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+    }
+    context.startActivity(intent)
 }
