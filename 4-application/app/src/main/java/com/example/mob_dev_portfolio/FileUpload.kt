@@ -6,6 +6,7 @@ import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,6 +25,24 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 
+@Composable
+fun QuoteCard(quote: JSONObject) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Quote #${quote.optString("quoteNumber", "-")}",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = "Date: ${quote.optString("date", "-")}")
+            Text(text = "Total: ${quote.optString("totalAmount", "-")}")
+        }
+    }
+}
 
 @Composable
 fun FilePicker(onFileSelected: (Uri) -> Unit) {
@@ -34,6 +53,17 @@ fun FilePicker(onFileSelected: (Uri) -> Unit) {
     val quoteArray = remember { JSONArray() }
 
     var quoteList by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
+
+    val db = remember { QuoteDatabase.getDatabase(context) }
+    val dao = remember { db.quoteDao() }
+
+    var savedProfileSummary by remember { mutableStateOf<List<QuoteProfileSummary>>(emptyList()) }
+    var selectedProfileQuotes by remember { mutableStateOf<List<JSONObject>?>(emptyList()) }
+    var selectedProfileName by remember { mutableStateOf("Untitled") }
+
+    LaunchedEffect(Unit) {
+        savedProfileSummary = withContext(Dispatchers.IO) { dao.getAllProfiles() }
+    }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
@@ -50,9 +80,21 @@ fun FilePicker(onFileSelected: (Uri) -> Unit) {
 
             println("MASTER JSON ARRAY:\n${quoteArray.toString(4)}")
 
+            dao.insertQuote(
+                QuoteEntity(
+                    profileName = selectedProfileName,
+                    quoteList = quoteArray.toString(),
+                    createdAt = System.currentTimeMillis().toString()
+                )
+            )
+
+            val updatedProfiles = dao.getAllProfiles()
             withContext(Dispatchers.Main) {
                 quoteList = List(quoteArray.length()) { quoteArray.getJSONObject(it) }
+                savedProfileSummary = updatedProfiles
             }
+
+
         }
     }
 
@@ -93,48 +135,81 @@ fun FilePicker(onFileSelected: (Uri) -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            if (quoteList.isNotEmpty()) {
+                Text("%{quoteList.size} quote(s) imported", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth() .padding(16.dp)
+                ) {
+                    items(quoteList) { quote ->
+                        QuoteCard(quote)
+                    }
+                }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(16.dp))
+            }
 
-            if (quoteList.isEmpty()) {
+            Text("Saved Profiles", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (savedProfileSummary.isEmpty()) {
                 Text(
-                    text = "No quotes imported yet",
+                    text = "No saved profiles yet",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
-                Text(
-                    text = "${quoteList.size} quote(s) imported",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(quoteList) { quote ->
+                    items(savedProfileSummary) { profile ->
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    scope.launch(Dispatchers.IO) {
+                                        val entity = dao.getQuoteById(profile.id)
+                                        val quotes = JSONArray(entity.quoteList)
+                                        val quoteObjects = List(quotes.length()) { quotes.getJSONObject(it) }
+                                        withContext(Dispatchers.Main) {
+                                            selectedProfileName = profile.profileName
+                                            selectedProfileQuotes = quoteObjects
+                                        }
+                                    }
+                                },
                             elevation = CardDefaults.cardElevation(4.dp)
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    text = "Quote #${quote.optString("quoteNumber", "-")}",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(text = "Date: ${quote.optString("date", "-")}")
-                                Text(text = "Total: ${quote.optString("totalAmount", "-")}")
+                                Text(profile.profileName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text("Created: ${profile.createdAt}", fontSize = 12.sp)
                             }
                         }
                     }
                 }
             }
+
+            selectedProfileQuotes?.let { quotes ->
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Quotes in \"$selectedProfileName\"", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(quotes) { quote -> QuoteCard(quote) }
+                }
+            }
         }
     }
 }
+
+
+
+
 
 
 private fun getFileNameFromUri(context: Context, uri: Uri): String {
