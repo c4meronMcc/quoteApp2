@@ -19,7 +19,9 @@ abstract class QuoteDatabase : RoomDatabase() {
                     context.applicationContext,
                     QuoteDatabase::class.java,
                     "quote_database"
-                ).build().also { INSTANCE = it }
+                )
+                    .fallbackToDestructiveMigration()
+                    .build().also { INSTANCE = it }
             }
         }
     }

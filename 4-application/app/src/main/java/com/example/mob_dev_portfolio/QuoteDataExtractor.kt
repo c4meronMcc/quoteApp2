@@ -34,10 +34,10 @@ object QuoteExtractor {
         }
 
         val json = JSONObject()
+        json.put("supplier", findSupplierName(rawText))
         json.put("quoteNumber", findReference(rawText))
         json.put("date", findDate(entities))
         json.put("totalAmount", findTotal(entities, rawText))
-
         return json
     }
 
@@ -72,6 +72,17 @@ object QuoteExtractor {
     private fun findReference(rawText: String): String {
         val pattern = Regex("""[A-Z]{1,6}-?\d{4,8}""")
         return pattern.find(rawText)?.value ?: "Not Found"
+    }
+
+    private fun findSupplierName(rawText: String): String {
+        val lines = rawText.lines().map { it.trim() }.filter { it.isNotEmpty() }
+
+        for (line in lines) {
+            if (line.matches(Regex("""^[\d\W]+$""")) || line.length < 3) continue
+
+            return if (line.length > 30) line.substring(0, 30) + "..." else line
+        }
+        return "Unknown Supplier"
     }
 }
 
