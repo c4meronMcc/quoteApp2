@@ -2,129 +2,216 @@ package com.example.mob_dev_portfolio
 
 import android.content.Context
 import android.net.Uri
-import android.os.Environment
-import android.content.Intent
-import androidx.core.content.FileProvider
-
-import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPage
 import com.tom_roush.pdfbox.pdmodel.PDPageContentStream
 import com.tom_roush.pdfbox.pdmodel.font.PDType1Font
 import com.tom_roush.pdfbox.text.PDFTextStripper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
-import java.io.File
 import java.io.InputStream
 
+import org.json.JSONObject
 
-fun  convertPdfToTxt(context: Context, uri: Uri): String {
-
+fun convertPdfToTxt(context: Context, uri: Uri): String {
     var inputStream: InputStream? = null
     var document: PDDocument? = null
 
     try {
-        PDFBoxResourceLoader.init(context)
         inputStream = context.contentResolver.openInputStream(uri)
         document = PDDocument.load(inputStream)
 
         val txtStripper = PDFTextStripper()
-        val text = txtStripper.getText(document)
-
-        // println("PDF text extracted successfully: $text")
-        return text
-    } catch (e : Exception) {
-        println("YOU RAN INTO AN ISSUE: ${e.message}")
+        return txtStripper.getText(document)
+    } catch (e: Exception) {
+        android.util.Log.e("PdfConverter", "Failed to extract text", e)
+        throw Exception("Failed to extract text from PDF")
     } finally {
         inputStream?.close()
         document?.close()
     }
-
-    return "fail"
 }
 
 
 
-fun generatePdfFromQuoteArray(context: Context, quoteArray: JSONArray) {
-    PDFBoxResourceLoader.init(context)
-
+suspend fun generatePdfFromQuoteArray(
+    context: Context,
+    quoteArray: JSONArray,
+    uri: Uri,
+    recommendation: JSONObject?,
+    recommendationType: String
+) {
     val document    = PDDocument()
     val font        = PDType1Font.HELVETICA
     val fontBold    = PDType1Font.HELVETICA_BOLD
-//    val pageWidth   = 595f
-    val pageHeight  = 842f
+
+    // Default PDFBox Page is US Letter (612 x 792 points)
+    val pageWidth   = 612f
+    val pageHeight  = 792f
     val margin      = 40f
-    val lineHeight  = 22f
 
-    // PDFBox origin is BOTTOM-LEFT, so yPos starts near the top and decreases
-    var yPos = pageHeight - margin - 40f
-
-    var page          = PDPage()
+    var page = PDPage()
     document.addPage(page)
     var contentStream = PDPageContentStream(document, page)
 
-    // Title
-    contentStream.beginText()
-    contentStream.setFont(fontBold, 20f)
-    contentStream.newLineAtOffset(margin, yPos)
-    contentStream.showText("Quotes Report")
-    contentStream.endText()
-    yPos -= lineHeight * 2
+    var yPos = pageHeight - 120f
 
-    for (i in 0 until quoteArray.length()) {
-        val quote = quoteArray.getJSONObject(i)
+    // Helper to add new pages when we run out of vertical space
+    fun checkPageBreak(requiredSpace: Float) {
+        if (yPos - requiredSpace < margin) {
+            contentStream.close()
+            page = PDPage()
+            document.addPage(page)
+            contentStream = PDPageContentStream(document, page)
+            yPos = pageHeight - 60f
+        }
+    }
 
-        quote.keys().forEach { key ->
-            val value = quote.optString(key, "-")
+    try {
+        //  header banner
+        contentStream.setNonStrokingColor(28f, 27f, 31f) // Ink Color
+        contentStream.addRect(0f, pageHeight - 80f, pageWidth, 80f)
+        contentStream.fill()
 
-            // New page if we're running out of space
-            if (yPos - lineHeight < margin) {
-                contentStream.close()
-                page          = PDPage()
-                document.addPage(page)
-                contentStream = PDPageContentStream(document, page)
-                yPos          = pageHeight - margin - lineHeight
-            }
+        contentStream.setNonStrokingColor(255f, 255f, 255f) // White text
+        contentStream.beginText()
+        contentStream.setFont(fontBold, 22f)
+        contentStream.newLineAtOffset(margin, pageHeight - 50f)
+        contentStream.showText("QuoteScout Report")
+        contentStream.endText()
 
-            // Key (bold)
+        // recommendation card
+        if (recommendation != null) {
+            checkPageBreak(140f)
+
+            // Subtitle
+            contentStream.setNonStrokingColor(255f, 107f, 53f) // Amber Color
+            contentStream.beginText()
+            contentStream.setFont(fontBold, 11f)
+            contentStream.newLineAtOffset(margin, yPos)
+            contentStream.showText("TOP RECOMMENDATION: ${recommendationType.uppercase()}")
+            contentStream.endText()
+            yPos -= 15f
+
+            // Card Background
+            contentStream.setNonStrokingColor(245f, 245f, 245f) // Light gray
+            contentStream.addRect(margin, yPos - 60f, pageWidth - (margin * 2), 70f)
+            contentStream.fill()
+
+            contentStream.setNonStrokingColor(28f, 27f, 31f) // Ink text
+
+            // Amount
+            contentStream.beginText()
+            contentStream.setFont(fontBold, 20f)
+            contentStream.newLineAtOffset(margin + 15f, yPos - 25f)
+            contentStream.showText(recommendation.optString("totalAmount", "-"))
+            contentStream.endText()
+
+            // Supplier Name
             contentStream.beginText()
             contentStream.setFont(fontBold, 13f)
-            contentStream.newLineAtOffset(margin, yPos)
-            contentStream.showText(key)
+            contentStream.newLineAtOffset(margin + 160f, yPos - 15f)
+            contentStream.showText(recommendation.optString("supplier", "Unknown Supplier"))
             contentStream.endText()
 
-            // Value (regular)
+            // Details
+            contentStream.setNonStrokingColor(100f, 100f, 100f)
             contentStream.beginText()
-            contentStream.setFont(font, 13f)
-            contentStream.newLineAtOffset(margin + 160f, yPos)
-            contentStream.showText(value)
+            contentStream.setFont(font, 10f)
+            contentStream.newLineAtOffset(margin + 160f, yPos - 35f)
+            contentStream.showText("REF: " + recommendation.optString("quoteNumber", "N/A") + "   |   DATE: " + recommendation.optString("date", "-"))
             contentStream.endText()
 
-            yPos -= lineHeight
+            yPos -= 90f
         }
 
-        yPos -= lineHeight / 2 // gap between quotes
+        // list of quotes
+        checkPageBreak(60f)
+        yPos -= 10f
+
+        contentStream.setNonStrokingColor(120f, 120f, 120f)
+        contentStream.beginText()
+        contentStream.setFont(fontBold, 10f)
+        contentStream.newLineAtOffset(margin, yPos)
+        contentStream.showText("ALL IMPORTED QUOTES")
+        contentStream.endText()
+        yPos -= 10f
+
+        // Solid divider line
+        contentStream.setStrokingColor(200f, 200f, 200f)
+        contentStream.setLineWidth(1f)
+        contentStream.moveTo(margin, yPos)
+        contentStream.lineTo(pageWidth - margin, yPos)
+        contentStream.stroke()
+        yPos -= 25f
+
+        // Sort quotes by amount to match the UI list
+        val sortedQuotes = mutableListOf<JSONObject>()
+        for (i in 0 until quoteArray.length()) {
+            sortedQuotes.add(quoteArray.getJSONObject(i))
+        }
+        sortedQuotes.sortBy { parseAmount(it.optString("totalAmount", "")) }
+
+        // Print each quote in a structured row
+        for ((index, quote) in sortedQuotes.withIndex()) {
+            checkPageBreak(50f)
+
+            contentStream.setNonStrokingColor(28f, 27f, 31f)
+
+            // Rank & Supplier
+            contentStream.beginText()
+            contentStream.setFont(fontBold, 12f)
+            contentStream.newLineAtOffset(margin, yPos)
+            contentStream.showText("${index + 1}. " + quote.optString("supplier", "Unknown Supplier"))
+            contentStream.endText()
+
+            // Amount (Right aligned visually)
+            contentStream.beginText()
+            contentStream.setFont(fontBold, 12f)
+            contentStream.newLineAtOffset(pageWidth - margin - 80f, yPos)
+            contentStream.showText(quote.optString("totalAmount", "-"))
+            contentStream.endText()
+
+            yPos -= 15f
+
+            // Ref & Date
+            contentStream.setNonStrokingColor(100f, 100f, 100f)
+            contentStream.beginText()
+            contentStream.setFont(font, 10f)
+            contentStream.newLineAtOffset(margin + 15f, yPos)
+            contentStream.showText("REF: " + quote.optString("quoteNumber", "N/A") + "   |   DATE: " + quote.optString("date", "-"))
+            contentStream.endText()
+
+            yPos -= 15f
+
+            // Light divider between rows
+            contentStream.setStrokingColor(235f, 235f, 235f)
+            contentStream.moveTo(margin, yPos)
+            contentStream.lineTo(pageWidth - margin, yPos)
+            contentStream.stroke()
+
+            yPos -= 20f // Spacing for next row
+        }
+
+    } catch (e: Exception) {
+        android.util.Log.e("PdfGenerator", "Error drawing PDF: ${e.message}", e)
+    } finally {
+        contentStream.close()
     }
 
-    contentStream.close()
-
-    val file = File(
-        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-        "quotes_report.pdf"
-    )
-    document.save(file)
-    document.close()
-
-    println("PDF saved to: ${file.absolutePath}")
-
-    val uri = FileProvider.getUriForFile(
-        context,
-        "${context.packageName}.provider",
-        file
-    )
-
-    val intent = Intent(Intent.ACTION_VIEW).apply {
-        setDataAndType(uri, "application/pdf")
-        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+    // save file to device
+    try {
+        context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+            document.save(outputStream)
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    } finally {
+        document.close()
     }
-    context.startActivity(intent)
+
+    withContext(Dispatchers.Main) {
+        android.widget.Toast.makeText(context, "Report exported successfully!", android.widget.Toast.LENGTH_SHORT).show()
+    }
 }
