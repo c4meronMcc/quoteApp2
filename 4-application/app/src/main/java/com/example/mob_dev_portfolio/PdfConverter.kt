@@ -11,8 +11,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import java.io.InputStream
-
 import org.json.JSONObject
+
+fun sanitisePdfText(text: String): String {
+    return text
+        .replace("£", "GBP ")
+        .replace("€", "EUR ")
+        .replace(Regex("[^\\x20-\\x7E]"), "")
+}
 
 fun convertPdfToTxt(context: Context, uri: Uri): String {
     var inputStream: InputStream? = null
@@ -33,8 +39,6 @@ fun convertPdfToTxt(context: Context, uri: Uri): String {
     }
 }
 
-
-
 suspend fun generatePdfFromQuoteArray(
     context: Context,
     quoteArray: JSONArray,
@@ -46,7 +50,7 @@ suspend fun generatePdfFromQuoteArray(
     val font        = PDType1Font.HELVETICA
     val fontBold    = PDType1Font.HELVETICA_BOLD
 
-    // Default PDFBox Page is US Letter (612 x 792 points)
+    // Default PDFBox Page is US Letter
     val pageWidth   = 612f
     val pageHeight  = 792f
     val margin      = 40f
@@ -70,15 +74,15 @@ suspend fun generatePdfFromQuoteArray(
 
     try {
         //  header banner
-        contentStream.setNonStrokingColor(28f, 27f, 31f) // Ink Color
+        contentStream.setNonStrokingColor(28, 27, 31) // Ink Color
         contentStream.addRect(0f, pageHeight - 80f, pageWidth, 80f)
         contentStream.fill()
 
-        contentStream.setNonStrokingColor(255f, 255f, 255f) // White text
+        contentStream.setNonStrokingColor(255, 255, 255) // White text
         contentStream.beginText()
         contentStream.setFont(fontBold, 22f)
         contentStream.newLineAtOffset(margin, pageHeight - 50f)
-        contentStream.showText("QuoteScout Report")
+        contentStream.showText(sanitisePdfText("QuoteScout Report"))
         contentStream.endText()
 
         // recommendation card
@@ -86,41 +90,41 @@ suspend fun generatePdfFromQuoteArray(
             checkPageBreak(140f)
 
             // Subtitle
-            contentStream.setNonStrokingColor(255f, 107f, 53f) // Amber Color
+            contentStream.setNonStrokingColor(255, 107, 53) // Amber Color
             contentStream.beginText()
             contentStream.setFont(fontBold, 11f)
             contentStream.newLineAtOffset(margin, yPos)
-            contentStream.showText("TOP RECOMMENDATION: ${recommendationType.uppercase()}")
+            contentStream.showText(sanitisePdfText("TOP RECOMMENDATION: ${recommendationType.uppercase()}"))
             contentStream.endText()
             yPos -= 15f
 
             // Card Background
-            contentStream.setNonStrokingColor(245f, 245f, 245f) // Light gray
+            contentStream.setNonStrokingColor(245, 245, 245) // Light gray
             contentStream.addRect(margin, yPos - 60f, pageWidth - (margin * 2), 70f)
             contentStream.fill()
 
-            contentStream.setNonStrokingColor(28f, 27f, 31f) // Ink text
+            contentStream.setNonStrokingColor(28, 27, 31) // Ink text
 
             // Amount
             contentStream.beginText()
             contentStream.setFont(fontBold, 20f)
             contentStream.newLineAtOffset(margin + 15f, yPos - 25f)
-            contentStream.showText(recommendation.optString("totalAmount", "-"))
+            contentStream.showText(sanitisePdfText(recommendation.optString("totalAmount", "-")))
             contentStream.endText()
 
             // Supplier Name
             contentStream.beginText()
             contentStream.setFont(fontBold, 13f)
             contentStream.newLineAtOffset(margin + 160f, yPos - 15f)
-            contentStream.showText(recommendation.optString("supplier", "Unknown Supplier"))
+            contentStream.showText(sanitisePdfText(recommendation.optString("supplier", "Unknown Supplier")))
             contentStream.endText()
 
             // Details
-            contentStream.setNonStrokingColor(100f, 100f, 100f)
+            contentStream.setNonStrokingColor(100, 100, 100)
             contentStream.beginText()
             contentStream.setFont(font, 10f)
             contentStream.newLineAtOffset(margin + 160f, yPos - 35f)
-            contentStream.showText("REF: " + recommendation.optString("quoteNumber", "N/A") + "   |   DATE: " + recommendation.optString("date", "-"))
+            contentStream.showText(sanitisePdfText("REF: " + recommendation.optString("quoteNumber", "N/A") + "   |   DATE: " + recommendation.optString("date", "-")))
             contentStream.endText()
 
             yPos -= 90f
@@ -130,16 +134,16 @@ suspend fun generatePdfFromQuoteArray(
         checkPageBreak(60f)
         yPos -= 10f
 
-        contentStream.setNonStrokingColor(120f, 120f, 120f)
+        contentStream.setNonStrokingColor(120, 120, 120)
         contentStream.beginText()
         contentStream.setFont(fontBold, 10f)
         contentStream.newLineAtOffset(margin, yPos)
-        contentStream.showText("ALL IMPORTED QUOTES")
+        contentStream.showText(sanitisePdfText("ALL IMPORTED QUOTES"))
         contentStream.endText()
         yPos -= 10f
 
         // Solid divider line
-        contentStream.setStrokingColor(200f, 200f, 200f)
+        contentStream.setStrokingColor(200, 200, 200)
         contentStream.setLineWidth(1f)
         contentStream.moveTo(margin, yPos)
         contentStream.lineTo(pageWidth - margin, yPos)
@@ -157,36 +161,36 @@ suspend fun generatePdfFromQuoteArray(
         for ((index, quote) in sortedQuotes.withIndex()) {
             checkPageBreak(50f)
 
-            contentStream.setNonStrokingColor(28f, 27f, 31f)
+            contentStream.setNonStrokingColor(28, 27, 31)
 
             // Rank & Supplier
             contentStream.beginText()
             contentStream.setFont(fontBold, 12f)
             contentStream.newLineAtOffset(margin, yPos)
-            contentStream.showText("${index + 1}. " + quote.optString("supplier", "Unknown Supplier"))
+            contentStream.showText(sanitisePdfText("${index + 1}. " + quote.optString("supplier", "Unknown Supplier")))
             contentStream.endText()
 
             // Amount (Right aligned visually)
             contentStream.beginText()
             contentStream.setFont(fontBold, 12f)
             contentStream.newLineAtOffset(pageWidth - margin - 80f, yPos)
-            contentStream.showText(quote.optString("totalAmount", "-"))
+            contentStream.showText(sanitisePdfText(quote.optString("totalAmount", "-")))
             contentStream.endText()
 
             yPos -= 15f
 
             // Ref & Date
-            contentStream.setNonStrokingColor(100f, 100f, 100f)
+            contentStream.setNonStrokingColor(100, 100, 100)
             contentStream.beginText()
             contentStream.setFont(font, 10f)
             contentStream.newLineAtOffset(margin + 15f, yPos)
-            contentStream.showText("REF: " + quote.optString("quoteNumber", "N/A") + "   |   DATE: " + quote.optString("date", "-"))
+            contentStream.showText(sanitisePdfText("REF: " + quote.optString("quoteNumber", "N/A") + "   |   DATE: " + quote.optString("date", "-")))
             contentStream.endText()
 
             yPos -= 15f
 
             // Light divider between rows
-            contentStream.setStrokingColor(235f, 235f, 235f)
+            contentStream.setStrokingColor(235, 235, 235)
             contentStream.moveTo(margin, yPos)
             contentStream.lineTo(pageWidth - margin, yPos)
             contentStream.stroke()
