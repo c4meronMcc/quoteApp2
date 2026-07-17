@@ -46,4 +46,4 @@ By utilizing Google ML Kit for on-device OCR instead of routing documents to a c
 The local database layer (Room) is designed to be easily testable. Instrumented tests can be run directly on an emulator or physical device to verify data insertion, retrieval, and schema migrations.
 
 ---
-*Engineered by [Your Name/Handle]. For professional inquiries regarding Android development, Kotlin, or on-device Machine Learning integrations, feel free to reach out.*
+*Engineered by Cameron Mccreadie Chaplin. For professional inquiries regarding Android development, Kotlin, or on-device Machine Learning integrations, feel free to reach out.*
